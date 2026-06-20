@@ -1,10 +1,3 @@
-# NOT UP TO DATE, REFLECTION REQUIRED
-
-# SOFT3888 F16 P42 - Student Skill Allocation System
-![images](https://github.sydney.edu.au/adoa5342/SOFT3888_F16_04_P42/assets/16521/f4eb4ece-3cdb-4abc-a991-231e55c8d381)
-
-
-
 ## 1. Introduction
 
 The **SOFT3888 F16 P42 Student Skill Allocation System** is a full-stack web application developed as part of the University of Sydney’s SOFT3888 Software Engineering course. The purpose of this system is to streamline and automate the process of allocating students to projects based on their skills, interests, and preferences.
