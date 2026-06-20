@@ -1,0 +1,5 @@
+project_id,title,client_org,supervisor,capacity_slots,estimated_hours_per_week,priority,cohort,due_week,tags,description
+P002,Data Analytics Dashboard,DataInsights,SUP002,2,12,0.8,2024,11,analytics,Create interactive dashboard for business intelligence
+P003,Mobile Learning App,EduTech,SUP003,1,18,0.95,2024,12,mobile,Develop cross-platform educational mobile application
+P004,AI Chatbot Implementation,SmartSolutions,SUP004,3,10,0.85,2025,12,ai,Develop and integrate an AI-powered chatbot for customer service
+P005,Cloud Migration Strategy,CloudFirst,SUP005,1,14,0.75,2025,13,cloud computing,Plan and design migration of legacy systems to cloud infrastructure

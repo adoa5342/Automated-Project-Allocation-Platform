@@ -1,0 +1,5 @@
+skill_id,name,category,description
+S003,React,Frontend,React.js framework for building user interfaces
+S004,Node.js,Backend,Server-side JavaScript runtime
+S005,SQL,Database,Structured Query Language for database management
+S006,Project Management,Soft Skills,Planning and coordinating project activities
