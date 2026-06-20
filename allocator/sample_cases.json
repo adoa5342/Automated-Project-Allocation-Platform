@@ -1,0 +1,259 @@
+// testcase 1: minimal (1 group, 1 project)
+{
+  "runId": "t1",
+  "cohort": "2025A",
+  "criteria": {
+    "weight_skill": 0.5,
+    "weight_preference": 0.3,
+    "weight_workload": 0.1,
+    "weight_priority": 0.1,
+    "avoid_penalty": -0.5
+  },
+  "locks": [],
+  "groups": [
+    {
+      "id": "g1",
+      "members": ["u1"],
+      "seniority": 1,
+      "skills": [
+        { "skillId": "python", "level": 2 }
+      ],
+      "availability": [
+        { "fromWeek": 2, "toWeek": 4, "hoursPerWeek": 5 }
+      ],
+      "preferences": [
+        { "projectId": "p1", "rank": 1 }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "p1",
+      "title": "Data Cleanup",
+      "capacitySlots": 1,
+      "estimatedHoursPerWeek": 5,
+      "priority": 0.5,
+      "cohort": "2025A",
+      "dueWeek": 5,
+      "requiredSkills": [
+        { "skillId": "python", "minLevel": 1, "importance": 1 }
+      ],
+      "tags": ["etl"],
+      "description": "Simple ETL cleanup task."
+    }
+  ]
+}
+
+---
+
+// testcase 2: 1 group vs 2 projects (skill vs preference tradeoff)
+{
+  "runId": "t2",
+  "cohort": "2025A",
+  "criteria": {
+    "weight_skill": 0.6,
+    "weight_preference": 0.3,
+    "weight_workload": 0.1,
+    "weight_priority": 0.0,
+    "avoid_penalty": -0.5
+  },
+  "locks": [],
+  "groups": [
+    {
+      "id": "g2",
+      "members": ["u2"],
+      "seniority": 2,
+      "skills": [
+        { "skillId": "backend", "level": 4 }
+      ],
+      "availability": [
+        { "fromWeek": 2, "toWeek": 7, "hoursPerWeek": 15 }
+      ],
+      "preferences": [
+        { "projectId": "p1", "rank": 1 }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "p1",
+      "title": "Frontend Refresh",
+      "capacitySlots": 1,
+      "estimatedHoursPerWeek": 10,
+      "priority": 0.7,
+      "cohort": "2025A",
+      "dueWeek": 6,
+      "requiredSkills": [
+        { "skillId": "frontend", "minLevel": 3, "importance": 0.9 }
+      ],
+      "tags": ["ui"],
+      "description": "Update UI for new branding."
+    },
+    {
+      "id": "p2",
+      "title": "API Hardening",
+      "capacitySlots": 1,
+      "estimatedHoursPerWeek": 15,
+      "priority": 0.9,
+      "cohort": "2025A",
+      "dueWeek": 8,
+      "requiredSkills": [
+        { "skillId": "backend", "minLevel": 4, "importance": 1 }
+      ],
+      "tags": ["infra"],
+      "description": "Improve reliability of backend APIs."
+    }
+  ]
+}
+
+---
+
+// testcase 3: 2 groups vs 1 project (competition)
+{
+  "runId": "t3",
+  "cohort": "2025B",
+  "criteria": {
+    "weight_skill": 0.4,
+    "weight_preference": 0.4,
+    "weight_workload": 0.1,
+    "weight_priority": 0.1,
+    "avoid_penalty": -0.5
+  },
+  "locks": [],
+  "groups": [
+    {
+      "id": "g3A",
+      "members": ["u3"],
+      "seniority": 1,
+      "skills": [
+        { "skillId": "design", "level": 3 }
+      ],
+      "availability": [
+        { "fromWeek": 2, "toWeek": 5, "hoursPerWeek": 8 }
+      ],
+      "preferences": [
+        { "projectId": "p3", "rank": 1 }
+      ]
+    },
+    {
+      "id": "g3B",
+      "members": ["u4"],
+      "seniority": 3,
+      "skills": [
+        { "skillId": "design", "level": 5 }
+      ],
+      "availability": [
+        { "fromWeek": 2, "toWeek": 6, "hoursPerWeek": 20 }
+      ],
+      "preferences": [
+        { "projectId": "p3", "rank": 1 }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "p3",
+      "title": "UX Revamp",
+      "capacitySlots": 1,
+      "estimatedHoursPerWeek": 12,
+      "priority": 0.8,
+      "cohort": "2025B",
+      "dueWeek": 7,
+      "requiredSkills": [
+        { "skillId": "design", "minLevel": 3, "importance": 1 }
+      ],
+      "tags": ["ux"],
+      "description": "Redesign core app flows."
+    }
+  ]
+}
+
+---
+
+// testcase 4: 3 groups vs 2 projects (some left unallocated)
+{
+  "runId": "t4",
+  "cohort": "2025C",
+  "criteria": {
+    "weight_skill": 0.5,
+    "weight_preference": 0.2,
+    "weight_workload": 0.2,
+    "weight_priority": 0.1,
+    "avoid_penalty": -0.5
+  },
+  "locks": [],
+  "groups": [
+    {
+      "id": "g4A",
+      "members": ["u5"],
+      "seniority": 1,
+      "skills": [
+        { "skillId": "ml", "level": 2 }
+      ],
+      "availability": [
+        { "fromWeek": 2, "toWeek": 5, "hoursPerWeek": 10 }
+      ],
+      "preferences": [
+        { "projectId": "p4", "rank": 1 }
+      ]
+    },
+    {
+      "id": "g4B",
+      "members": ["u6"],
+      "seniority": 2,
+      "skills": [
+        { "skillId": "ml", "level": 4 }
+      ],
+      "availability": [
+        { "fromWeek": 3, "toWeek": 6, "hoursPerWeek": 15 }
+      ],
+      "preferences": [
+        { "projectId": "p5", "rank": 1 }
+      ]
+    },
+    {
+      "id": "g4C",
+      "members": ["u7"],
+      "seniority": 3,
+      "skills": [
+        { "skillId": "ml", "level": 5 }
+      ],
+      "availability": [
+        { "fromWeek": 2, "toWeek": 7, "hoursPerWeek": 20 }
+      ],
+      "preferences": [
+        { "projectId": "p4", "rank": 1 }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "id": "p4",
+      "title": "ML Prototype",
+      "capacitySlots": 1,
+      "estimatedHoursPerWeek": 12,
+      "priority": 0.7,
+      "cohort": "2025C",
+      "dueWeek": 8,
+      "requiredSkills": [
+        { "skillId": "ml", "minLevel": 3, "importance": 0.9 }
+      ],
+      "tags": ["ml", "prototype"],
+      "description": "Build initial ML prototype."
+    },
+    {
+      "id": "p5",
+      "title": "Data Labeling",
+      "capacitySlots": 1,
+      "estimatedHoursPerWeek": 15,
+      "priority": 0.6,
+      "cohort": "2025C",
+      "dueWeek": 6,
+      "requiredSkills": [
+        { "skillId": "ml", "minLevel": 2, "importance": 0.8 }
+      ],
+      "tags": ["ml", "data"],
+      "description": "Prepare labeled dataset."
+    }
+  ]
+}

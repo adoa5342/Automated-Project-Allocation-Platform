@@ -1,0 +1,44 @@
+
+@import "tailwindcss";
+body {
+  @apply text-lg font-medium;
+}
+
+input {
+  @apply rounded-lg border border-gray-300 px-3 py-2 my-3;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="url"] {
+  @apply focus:outline-none focus:ring-2 focus:ring-[#4D5D68] focus:border-transparent;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="url"] {
+  @apply block w-full;
+}
+
+.input-block{
+  @apply mt-15;
+}
+
+select {
+  @apply block appearance-none my-3 w-full
+         rounded-lg border border-gray-200 bg-white/80 backdrop-blur-sm
+         px-4 py-2 shadow-sm pr-12
+         focus:outline-none focus:ring-4 focus:ring-[#6F7E89] focus:border-[#334451]
+         transition-all duration-150 ease-out;
+}
+
+button{
+  @apply shadow-md ring-1 ring-black/5 text-white p-2 hover:cursor-pointer transition;
+}
+
+button[type="submit"] {
+  @apply px-6 py-3;
+}

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<head>
+    <title>Admin Upload</title>
+    <style>
+        .main-content { display: flex; gap: 20px; }
+        .upload-section {
+            flex: 1;
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+        }
+        .upload-section.dragover { border-color: #007bff; }
+        .preview-section { flex: 1; border: 1px solid #ddd; padding: 20px; }
+        .btn { padding: 10px 20px; margin: 5px; border: none; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .file-input { display: none; }
+        .file-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .csv-file {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .csv-file:hover { background-color: #f0f0f0; }
+        .preview-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .preview-table th, .preview-table td { border: 1px solid #ddd; padding: 5px; }
+        .preview-table th { background-color: #f0f0f0; }
+        .status-message { margin: 10px 0; padding: 10px; }
+        .status-success { background-color: #d4edda; color: #155724; }
+        .status-error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <a href="index.html">⬅️ Home</a>
+
+    <h1>Admin Upload</h1>
+
+    <div class="main-content">
+        <div class="upload-section" id="uploadSection">
+            <p>Drop files here</p>
+            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                Choose Files
+            </button>
+            <input type="file" id="fileInput" class="file-input" multiple accept=".csv,.zip">
+            <div id="fileList"></div>
+        </div>
+
+        <div class="preview-section">
+            <h3>Data Preview</h3>
+            <div id="csvFiles"></div>
+        </div>
+    </div>
+
+    <div>
+        <button class="btn btn-success" id="uploadBtn" onclick="uploadFiles()" disabled>Upload</button>
+        <button class="btn btn-secondary" id="toResultsBtn" onclick="toResults()" style="display: none;">View Results</button>
+    </div>
+
+    <div id="statusMessage"></div>
+
+    <script>
+        let uploadedFiles = [];
+        let csvData = {};
+
+        // Drag and drop functionality
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const toResultsBtn = document.getElementById('toResultsBtn');
+
+
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleFiles(files);
+        });
+
+        function handleFiles(files) {
+            uploadedFiles = [...uploadedFiles, ...files];
+            displayFileList();
+            uploadBtn.disabled = uploadedFiles.length === 0;
+        }
+
+        function displayFileList() {
+            fileList.innerHTML = '';
+            uploadedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span>${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+                    <button class="btn btn-secondary" onclick="removeFile(${index})">Remove</button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+            updateCsvSelector();
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            displayFileList();
+            uploadBtn.disabled = uploadedFiles.length === 0;
+        }
+
+        function updateCsvSelector() {
+            const csvFilesDiv = document.getElementById('csvFiles');
+            const csvFiles = uploadedFiles.filter(file => file.name.endsWith('.csv'));
+
+            if (csvFiles.length === 0) {
+                csvFilesDiv.innerHTML = '<p>No CSV files uploaded yet.</p>';
+                return;
+            }
+
+            csvFilesDiv.innerHTML = '';
+            csvFiles.forEach((file, index) => {
+                const fileDiv = document.createElement('div');
+                fileDiv.className = 'csv-file';
+                fileDiv.innerHTML = `<strong>${file.name}</strong>`;
+                fileDiv.onclick = () => previewCsv(file);
+
+                const previewDiv = document.createElement('div');
+                previewDiv.id = `preview-${index}`;
+                previewDiv.style.display = 'none';
+
+                fileDiv.appendChild(previewDiv);
+                csvFilesDiv.appendChild(fileDiv);
+            });
+        }
+
+        function previewCsv(file) {
+            // Hide all previews first
+            document.querySelectorAll('[id^="preview-"]').forEach(div => {
+                div.style.display = 'none';
+            });
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const csv = e.target.result;
+                const lines = csv.split('\n').filter(line => line.trim());
+                const headers = lines[0].split(',').map(h => h.trim());
+                const rows = lines.slice(1, 4); // Show first 3 rows
+
+                let tableHtml = '<table class="preview-table"><thead><tr>';
+                headers.forEach(header => {
+                    tableHtml += `<th>${header}</th>`;
+                });
+                tableHtml += '</tr></thead><tbody>';
+
+                rows.forEach(row => {
+                    const cells = row.split(',').map(c => c.trim());
+                    tableHtml += '<tr>';
+                    cells.forEach(cell => {
+                        tableHtml += `<td>${cell}</td>`;
+                    });
+                    tableHtml += '</tr>';
+                });
+
+                tableHtml += '</tbody></table>';
+
+                if (lines.length > 4) {
+                    tableHtml += `<p>Showing 3 of ${lines.length - 1} rows</p>`;
+                }
+
+                // Find the preview div for this file
+                const csvFiles = uploadedFiles.filter(f => f.name.endsWith('.csv'));
+                const fileIndex = csvFiles.findIndex(f => f.name === file.name);
+                const previewDiv = document.getElementById(`preview-${fileIndex}`);
+                if (previewDiv) {
+                    previewDiv.innerHTML = tableHtml;
+                    previewDiv.style.display = 'block';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function uploadFiles() {
+            if (uploadedFiles.length === 0) return;
+
+            const formData = new FormData();
+
+            // If there's a ZIP file, upload only that
+            const zipFile = uploadedFiles.find(file => file.name.endsWith('.zip'));
+            if (zipFile) {
+                formData.append('file', zipFile);
+            } else {
+                // Upload all files
+                uploadedFiles.forEach(file => {
+                    formData.append('file', file);
+                });
+            }
+
+            try {
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = 'Uploading...';
+                showStatus('Uploading files...', 'info');
+
+                const response = await fetch('/api/v1/import', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.ok) {
+                    showStatus('Files uploaded successfully!', 'success');
+                    toResultsBtn.style.display = 'inline-block';
+                } else {
+                    showStatus(`Upload failed: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Upload failed: ${error.message}`, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Data';
+            }
+        }
+
+
+        function toResults() {
+            window.location.href = 'results_dashboard.html';
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

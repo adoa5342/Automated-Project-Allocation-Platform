@@ -1,0 +1,210 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// generates a JS/TS client for web-based import
+
+enum AllocStatus {
+  proposed
+  locked
+  final
+}
+
+// assignment status value for allocator output
+
+enum AccountRole {
+  admin
+  student
+}
+
+model Account {
+  id       String      @id @default(cuid()) @map("account_id")
+  username String      @unique
+  password String
+  role     AccountRole
+
+  userId String? @unique @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+model User {
+  id        String @id @map("user_id")
+  fullName  String @map("full_name")
+  email     String @unique
+  cohort    String
+  role      String
+  seniority String
+
+  groupMemberships GroupMember[] // group_members.csv
+  account          Account?
+
+  @@map("users")
+}
+
+model Skill {
+  id          String @id @map("skill_id")
+  name        String @map("skill_name")
+  category    String
+  description String
+
+  groupSkills GroupSkill[]
+  requiredBy  ProjectRequiredSkill[]
+
+  @@map("skills")
+}
+
+model GroupSkill {
+  groupId String @map("group_id")
+  skillId String @map("skill_id")
+  level   Int
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, skillId])
+  @@map("group_skills")
+}
+
+model GroupTag {
+  groupTag String @id @map("group_tag")
+  group    Group?
+
+  @@map("group_tags")
+}
+
+model Group {
+  id   String @id @map("group_id")
+  name String @map("group_name")
+
+  members      GroupMember[] // group_members.csv
+  skills       GroupSkill[] // group_skills.csv
+  availability GroupAvailability[] // group_availability.csv
+  preferences  GroupPreference[] // group_preferences.csv
+  Lock         Lock[]
+  Assignment   Assignment[]
+
+  tag GroupTag @relation(fields: [id], references: [groupTag], onDelete: Cascade)
+
+  @@map("groups")
+}
+
+model GroupMember {
+  groupId    String @map("group_id")
+  userId     String @map("user_id")
+  memberRole String @map("member_role")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@map("group_members")
+}
+
+model Project {
+  id                    String @id @map("project_id")
+  title                 String
+  client_org            String
+  supervisor            String
+  capacitySlots         Int    @map("capacity_slots")
+  estimatedHoursPerWeek Int    @map("estimated_hours_per_week")
+  priority              Float
+  cohort                String
+  dueWeek               Int    @map("due_week")
+  tags                  String
+  description           String
+
+  requiredSkills  ProjectRequiredSkill[] // project_required_skills.csv
+  assignments     Assignment[] // assignments.csv
+  GroupPreference GroupPreference[]
+  Lock            Lock[]
+
+  @@map("projects")
+}
+
+model ProjectRequiredSkill {
+  projectId  String @map("project_id")
+  skillId    String @map("skill_id")
+  minLevel   Int    @map("min_level")
+  importance Float
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skill   Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, skillId])
+  @@map("project_required_skills")
+}
+
+model GroupPreference {
+  groupId   String @map("group_id")
+  projectId String @map("project_id")
+  rank      Int
+
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, projectId])
+  @@map("group_preferences")
+}
+
+model GroupAvailability {
+  id           String @id @default(cuid()) // internal surrogate key - could be removed
+  groupId      String @map("group_id")
+  fromWeek     Int    @map("from_week")
+  toWeek       Int    @map("to_week")
+  hoursPerWeek Int    @map("hours_per_week")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, fromWeek, toWeek, hoursPerWeek])
+  @@map("group_availability")
+}
+
+model CriteriaWeights {
+  id               String @id @default("default") // fixed to fetch current weights - could be removed
+  weightSkill      Float  @map("weight_skill")
+  weightPreference Float  @map("weight_preference")
+  weightWorkload   Float  @map("weight_workload")
+  weightPriority   Float  @map("weight_priority")
+  avoidPenalty     Float  @map("avoid_penalty")
+
+  @@map("criteria_weights")
+}
+
+model Lock {
+  projectId String @map("project_id")
+  groupId   String @map("group_id")
+  status    String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, groupId])
+  @@map("locks")
+}
+
+model Assignment {
+  id           String      @id @default(cuid()) // could be removed
+  runId        String      @map("run_id")
+  projectId    String      @map("project_id")
+  groupId      String      @map("group_id")
+  status       AllocStatus
+  score        Float
+  skillFit     Float       @map("skill_fit")
+  prefTerm     Float       @map("pref_term")
+  workloadTerm Float       @map("workload_term")
+  priorityTerm Float       @map("priority_term")
+  createTime   DateTime    @default(now()) @map("create_time")
+
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@map("assignments")
+}

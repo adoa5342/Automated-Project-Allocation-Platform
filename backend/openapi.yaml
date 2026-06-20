@@ -1,0 +1,754 @@
+openapi: 3.0.3
+info:
+  title: P42 Backend API
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/v1/import:
+    post:
+      summary: Import dataset (ZIP or multiple CSVs)
+      description: Accepts a .zip of canonical CSVs or multiple CSV files. Validates headers/refs and writes to DB.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  oneOf:
+                    - type: string
+                      format: binary
+                    - type: array
+                      items:
+                        type: string
+                        format: binary
+      responses:
+        '200':
+          description: Import report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportReport'
+        '400':
+          description: Validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportReport'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/import/csv:
+    post:
+      summary: Import one or more CSV files
+      description: Accepts .csv files or a .zip containing canonical CSVs.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  oneOf:
+                    - type: string
+                      format: binary
+                    - type: array
+                      items:
+                        type: string
+                        format: binary
+      responses:
+        '200':
+          description: Import report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportReport'
+        '400':
+          description: Validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportReport'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/allocate:
+    post:
+      summary: Run allocation using current DB state
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                runId:
+                  type: string
+                  description: Optional run identifier
+      responses:
+        '200':
+          description: Allocation result summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationRunResponse'
+        '502':
+          description: Allocator unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/results/{runId}:
+    get:
+      summary: Get allocation results by runId
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Results payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/allocation/history:
+    get:
+      summary: List historical allocation runs
+      responses:
+        '200':
+          description: Historical runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllocationRecord'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/allocation/history/{runId}:
+    get:
+      summary: Get detailed allocation by runId
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Allocation detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationDetail'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/database:
+    post:
+      summary: Clear database (development)
+      responses:
+        '200':
+          description: Cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/database/records:
+    post:
+      summary: Fetch records from an allowlisted table
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - table
+              properties:
+                table:
+                  type: string
+                  enum:
+                    - user
+                    - skill
+                    - project
+                    - project_required_skill
+                    - criteria_weights
+                    - group_tag
+                    - group
+                    - group_preference
+                    - group_skill
+                    - group_availability
+                    - group_member
+                    - assignment
+                args:
+                  type: object
+                  description: Optional Prisma-style findMany args (may be ignored)
+      responses:
+        '200':
+          description: Records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/student-survey/groups:
+    get:
+      summary: List available group tags
+      security: []
+      responses:
+        '200':
+          description: Tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        groupTag:
+                          type: string
+
+  /api/v1/student-survey/skills:
+    get:
+      summary: List skills
+      security: []
+      responses:
+        '200':
+          description: Skills
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  skills:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+
+  /api/v1/student-survey/projects:
+    get:
+      summary: List projects (id + name)
+      security: []
+      responses:
+        '200':
+          description: Projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+
+  /api/v1/student-survey/submit:
+    post:
+      summary: Submit group survey (students, preferences, availability, skills)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentSurveySubmitRequest'
+      responses:
+        '200':
+          description: Submission result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  message:
+                    type: string
+                  groupId:
+                    type: string
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/login:
+    post:
+      summary: Username/password login (JWT issuance)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login result
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        enum: [true]
+                      message:
+                        type: string
+                      token:
+                        type: string
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          username:
+                            type: string
+                          role:
+                            type: string
+                            enum: [admin, student]
+                  - type: object
+                    properties:
+                      ok:
+                        type: boolean
+                        enum: [false]
+                      message:
+                        type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+        error:
+          type: string
+
+    ImportError:
+      type: object
+      properties:
+        file:
+          type: string
+        row:
+          type: integer
+        message:
+          type: string
+
+    ImportReport:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportError'
+        errorFiles:
+          type: array
+          items:
+            type: object
+            properties:
+              file:
+                type: string
+              path:
+                type: string
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+      description: >-
+        Canonical CSVs include users.csv, skills.csv, projects.csv,
+        project_required_skills.csv, groups.csv, group_members.csv,
+        group_skills.csv, group_preferences.csv, group_availability.csv,
+        criteria_weights.csv, locks.csv, group_tags.csv.
+
+    AllocationRunResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        runId:
+          type: string
+        allocations:
+          type: array
+          items:
+            type: object
+            properties:
+              groupId:
+                type: string
+              projectId:
+                type: string
+              status:
+                type: string
+                enum: [proposed, locked, final]
+              score:
+                type: number
+              skill_fit:
+                type: number
+              pref_term:
+                type: number
+              workload_term:
+                type: number
+              priority_term:
+                type: number
+
+    Assignment:
+      type: object
+      properties:
+        id:
+          type: string
+        runId:
+          type: string
+        projectId:
+          type: string
+        groupId:
+          type: string
+        status:
+          type: string
+          enum: [proposed, locked, final]
+        score:
+          type: number
+        skillFit:
+          type: number
+        prefTerm:
+          type: number
+        workloadTerm:
+          type: number
+        priorityTerm:
+          type: number
+        createTime:
+          type: string
+          format: date-time
+
+    ResultsResponse:
+      type: object
+      properties:
+        runId:
+          type: string
+        count:
+          type: integer
+        byProject:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              count:
+                type: integer
+              groups:
+                type: array
+                items:
+                  type: string
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assignment'
+
+    AllocationRecord:
+      type: object
+      properties:
+        id:
+          type: string
+        runId:
+          type: string
+        create_time:
+          type: string
+          format: date-time
+        project_count:
+          type: integer
+        user_count:
+          type: integer
+        status:
+          type: string
+          enum: [completed, partial, failed]
+
+    AllocationDetail:
+      type: object
+      properties:
+        runId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        assignments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              projectId:
+                type: string
+              projectName:
+                type: string
+              groupId:
+                type: string
+              groupName:
+                type: string
+              status:
+                type: string
+                enum: [completed, partial, failed]
+              score:
+                type: number
+              skillFit:
+                type: number
+              prefTerm:
+                type: number
+              workloadTerm:
+                type: number
+              priorityTerm:
+                type: number
+              members:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    userId:
+                      type: string
+                    userName:
+                      type: string
+        stats:
+          type: object
+          properties:
+            totalGroups:
+              type: integer
+            assignedGroups:
+              type: integer
+            avgScore:
+              type: number
+            totalProjects:
+              type: integer
+            availableProjectSlots:
+              type: integer
+            projectCapacities:
+              type: array
+              items:
+                type: object
+                properties:
+                  projectName:
+                    type: string
+                  assigned:
+                    type: integer
+                  capacity:
+                    type: integer
+
+    StudentSurveySubmitRequest:
+      type: object
+      required:
+        - groupName
+        - students
+      properties:
+        groupName:
+          type: string
+        students:
+          type: array
+          items:
+            type: object
+            required:
+              - fullName
+              - email
+            properties:
+              fullName:
+                type: string
+              email:
+                type: string
+                format: email
+              cohort:
+                type: string
+              role:
+                type: string
+              seniority:
+                type: string
+        topProjects:
+          type: array
+          items:
+            type: string
+        availability:
+          type: object
+          properties:
+            fromWeek:
+              type: integer
+            toWeek:
+              type: integer
+            hoursPerWeek:
+              type: integer
+        skills:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              level:
+                type: integer
+                minimum: 1
+                maximum: 5

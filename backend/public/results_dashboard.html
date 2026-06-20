@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<head>
+    <title>Results Dashboard</title>
+    <style>
+        .btn { padding: 10px 20px; margin: 5px; border: none; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .results-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .results-table th, .results-table td { border: 1px solid #ddd; padding: 8px; }
+        .results-table th { background-color: #f0f0f0; }
+        .error { background-color: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; }
+        .summary { background-color: #f0f0f0; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <a href="index.html">⬅️ Home</a>
+
+    <h1>Results Dashboard</h1>
+
+    <button class="btn btn-primary" onclick="loadLatestResults()">Load Latest Results</button>
+    <button class="btn btn-secondary" onclick="refreshResults()">Refresh</button>
+
+    <div id="errorMessage"></div>
+
+    <div id="resultsContent" style="display: none;">
+        <div id="summaryCards"></div>
+        <div id="assignmentsTable"></div>
+        <div id="projectSummaryTable"></div>
+    </div>
+
+    <script>
+        let currentResults = null;
+
+        // Latest run: make an allocation call
+        async function loadLatestResults() {
+            try {
+                const allocResponse = await fetch('/api/v1/allocate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                if (allocResponse.ok) {
+                    const allocResult = await allocResponse.json();
+                    if (allocResult.runId) {
+                        await loadResultsByRunId(allocResult.runId);
+                        return;
+                    }
+                }
+            } catch (error) {
+                showError(`Failed to load results: ${error.message}`);
+            }
+        }
+
+        async function loadResultsByRunId(runId) {
+            try {
+                const response = await fetch(`/api/v1/results/${runId}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const results = await response.json();
+                currentResults = results;
+                displayResults(results);
+
+            } catch (error) {
+                showError(`Failed to load results: ${error.message}`);
+            }
+        }
+
+        function displayResults(results) {
+            hideError();
+
+            document.getElementById('resultsContent').style.display = 'block';
+
+            // Display summary cards
+            displaySummaryCards(results);
+
+            // Display assignments table
+            displayAssignmentsTable(results.assignments || []);
+
+            // Display project summary table
+            displayProjectSummaryTable(results.byProject || {});
+        }
+
+        function displaySummaryCards(results) {
+            const summaryCards = document.getElementById('summaryCards');
+            const totalAssignments = results.count || 0;
+            const totalProjects = Object.keys(results.byProject || {}).length;
+
+            summaryCards.innerHTML = `
+                <div class="summary">
+                    <strong>Run ID:</strong> ${results.runId || 'N/A'} |
+                    <strong>Total Assignments:</strong> ${totalAssignments} |
+                    <strong>Projects:</strong> ${totalProjects}
+                </div>
+            `;
+        }
+
+        function displayAssignmentsTable(assignments) {
+            const tableContainer = document.getElementById('assignmentsTable');
+
+            if (!assignments || assignments.length === 0) {
+                tableContainer.innerHTML = '<p>No assignments found.</p>';
+                return;
+            }
+
+            let tableHtml = `
+                <h3>Assignments</h3>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Group ID</th>
+                            <th>Project ID</th>
+                            <th>Status</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            assignments.forEach(assignment => {
+                tableHtml += `
+                    <tr>
+                        <td>${assignment.groupId || 'N/A'}</td>
+                        <td>${assignment.projectId || 'N/A'}</td>
+                        <td>${assignment.status || 'proposed'}</td>
+                        <td>${(assignment.score || 0).toFixed(3)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</tbody></table>';
+            tableContainer.innerHTML = tableHtml;
+        }
+
+        function displayProjectSummaryTable(byProject) {
+            const tableContainer = document.getElementById('projectSummaryTable');
+
+            if (!byProject || Object.keys(byProject).length === 0) {
+                tableContainer.innerHTML = '<p>No project assignments found.</p>';
+                return;
+            }
+
+            let tableHtml = `
+                <h3>Project Summary</h3>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Project ID</th>
+                            <th>Assigned Groups</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            Object.entries(byProject).forEach(([projectId, data]) => {
+                const groups = data.groups || [];
+                tableHtml += `
+                    <tr>
+                        <td>${projectId}</td>
+                        <td>${groups.join(', ')}</td>
+                        <td>${data.count || 0}</td>
+                    </tr>
+                `;
+            });
+
+            tableHtml += '</tbody></table>';
+            tableContainer.innerHTML = tableHtml;
+        }
+
+        function refreshResults() {
+            if (currentResults) {
+                displayResults(currentResults);
+            } else {
+                loadLatestResults();
+            }
+        }
+
+
+        function showError(message) {
+            document.getElementById('errorMessage').innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').innerHTML = '';
+        }
+
+        // Load results on page load if there's a runId in the URL
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const runId = urlParams.get('runId');
+            if (runId) {
+                loadResultsByRunId(runId);
+            }
+        });
+    </script>
+</body>
+</html>
